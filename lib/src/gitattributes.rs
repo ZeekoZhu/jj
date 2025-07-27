@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #![expect(missing_docs)]
-#![allow(unused)]
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -28,12 +27,12 @@ use gix_attributes::State;
 use gix_attributes::glob::pattern::Case;
 use gix_attributes::search::MetadataCollection;
 use gix_attributes::search::Outcome;
-use tokio::io::AsyncRead;
-use tokio::io::AsyncReadExt as _;
+use futures::AsyncRead;
+use futures::AsyncReadExt as _;
+use futures::io::AllowStdIo;
 use tokio::sync::OnceCell;
 
 use crate::backend::TreeValue;
-use crate::file_util::BlockingAsyncReader;
 use crate::merge::SameChange;
 use crate::merged_tree::MergedTree;
 use crate::repo_path::RepoPath;
@@ -170,7 +169,7 @@ impl FileLoader for DiskFileLoader {
                 });
             }
         };
-        Ok(Some(Box::new(BlockingAsyncReader::new(file))))
+        Ok(Some(Box::new(AllowStdIo::new(file))))
     }
 }
 
@@ -445,7 +444,7 @@ mod tests {
             };
             let data = mocked_result.clone();
             match data {
-                Ok(data) => Ok(Some(Box::new(Cursor::new(Vec::from(data))))),
+                Ok(data) => Ok(Some(Box::new(AllowStdIo::new(Cursor::new(Vec::from(data)))))),
                 Err(message) => Err(GitAttributesError {
                     message: message.clone(),
                     source: message.into(),
